@@ -1,0 +1,156 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1120" viewBox="0 0 1600 1120" role="img" aria-labelledby="title description">
+  <title id="title">Velvet Spice production database ER overview</title>
+  <desc id="description">A PostgreSQL ecommerce database grouped into identity, catalog, shopping, commerce, fulfillment, and engagement domains, with arrows showing how those domains connect.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,5 L0,10 z" fill="#9b3159"/>
+    </marker>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="5" stdDeviation="8" flood-color="#331629" flood-opacity="0.08"/>
+    </filter>
+    <style>
+      .bg { fill: #f7f5fb; }
+      .title { font: 700 34px 'Inter', 'Segoe UI', sans-serif; fill: #241a2b; }
+      .subtitle { font: 400 16px 'Inter', 'Segoe UI', sans-serif; fill: #655b6e; }
+      .panel { fill: #fff; stroke: #e8e1ee; stroke-width: 1.5; rx: 16; filter: url(#shadow); }
+      .panel-title { font: 700 19px 'Inter', 'Segoe UI', sans-serif; fill: #702344; }
+      .rule { stroke: #efeaf2; stroke-width: 1; }
+      .table-name { font: 700 14px 'SFMono-Regular', Consolas, monospace; fill: #28202d; }
+      .field { font: 400 12px 'SFMono-Regular', Consolas, monospace; fill: #625b67; }
+      .note { font: 400 12px 'Inter', 'Segoe UI', sans-serif; fill: #6d6471; }
+      .edge { fill: none; stroke: #9b3159; stroke-width: 2.2; marker-end: url(#arrow); }
+      .edge-label { font: 600 11px 'Inter', 'Segoe UI', sans-serif; fill: #842448; }
+      .badge { fill: #f9e9f0; stroke: #f0d1df; stroke-width: 1; rx: 10; }
+      .badge-text { font: 700 10px 'Inter', 'Segoe UI', sans-serif; fill: #842448; }
+    </style>
+  </defs>
+
+  <rect class="bg" width="1600" height="1120"/>
+  <text class="title" x="56" y="60">Velvet Spice | Production Database</text>
+  <text class="subtitle" x="56" y="91">PostgreSQL relational model · UUID primary keys · foreign keys shown between domains</text>
+
+  <!-- Relationship paths sit behind the domain panels. -->
+  <path class="edge" d="M505 309 H575"/>
+  <text class="edge-label" x="510" y="298">product catalog</text>
+  <path class="edge" d="M1025 309 H1095"/>
+  <text class="edge-label" x="1028" y="298">products in cart / wishlist</text>
+  <path class="edge" d="M280 500 V562"/>
+  <text class="edge-label" x="291" y="540">customer account</text>
+  <path class="edge" d="M1320 500 V548 H505 V610"/>
+  <text class="edge-label" x="779" y="541">checkout creates order</text>
+  <path class="edge" d="M505 760 H575"/>
+  <text class="edge-label" x="507" y="749">order lifecycle</text>
+  <path class="edge" d="M800 500 V566 H800 V610"/>
+  <text class="edge-label" x="812" y="559">variant stock</text>
+  <path class="edge" d="M280 950 V1000 H1320 V965"/>
+  <text class="edge-label" x="730" y="992">purchased item can be reviewed</text>
+
+  <!-- Identity -->
+  <g>
+    <rect class="panel" x="55" y="145" width="450" height="355"/>
+    <text class="panel-title" x="80" y="180">01 · Identity</text>
+    <line class="rule" x1="80" y1="194" x2="480" y2="194"/>
+    <text class="table-name" x="80" y="222">users</text>
+    <text class="field" x="80" y="242">PK id · email UNIQUE · password_hash*</text>
+    <text class="field" x="80" y="260">name · phone · status · created_at</text>
+    <text class="table-name" x="80" y="295">auth_identities</text>
+    <text class="field" x="80" y="315">PK id · FK user_id · provider · provider_user_id</text>
+    <text class="table-name" x="80" y="350">user_addresses</text>
+    <text class="field" x="80" y="370">PK id · FK user_id · recipient · address fields</text>
+    <text class="field" x="80" y="388">is_default · verified_at</text>
+    <rect class="badge" x="80" y="420" width="178" height="24"/>
+    <text class="badge-text" x="93" y="436">password hash only</text>
+    <text class="note" x="80" y="472">OAuth/OTP managed by auth service or provider.</text>
+  </g>
+
+  <!-- Catalog -->
+  <g>
+    <rect class="panel" x="575" y="145" width="450" height="355"/>
+    <text class="panel-title" x="600" y="180">02 · Catalog</text>
+    <line class="rule" x1="600" y1="194" x2="1000" y2="194"/>
+    <text class="table-name" x="600" y="222">categories</text>
+    <text class="field" x="600" y="242">PK id · FK parent_id · name · slug UNIQUE</text>
+    <text class="table-name" x="600" y="276">products</text>
+    <text class="field" x="600" y="296">PK id · FK category_id · name · slug · description</text>
+    <text class="field" x="600" y="314">status · badge · created_at</text>
+    <text class="table-name" x="600" y="348">product_variants</text>
+    <text class="field" x="600" y="368">PK id · FK product_id · sku UNIQUE · attributes</text>
+    <text class="field" x="600" y="386">price · compare_at_price · active</text>
+    <text class="table-name" x="600" y="420">product_images · tags · product_tags</text>
+    <text class="field" x="600" y="440">Images store object-storage keys, not file bytes.</text>
+    <text class="field" x="600" y="468">Variant attributes cover color / material / size.</text>
+  </g>
+
+  <!-- Shopping -->
+  <g>
+    <rect class="panel" x="1095" y="145" width="450" height="355"/>
+    <text class="panel-title" x="1120" y="180">03 · Shopping</text>
+    <line class="rule" x1="1120" y1="194" x2="1520" y2="194"/>
+    <text class="table-name" x="1120" y="222">carts</text>
+    <text class="field" x="1120" y="242">PK id · FK user_id (nullable for guest) · status</text>
+    <text class="table-name" x="1120" y="278">cart_items</text>
+    <text class="field" x="1120" y="298">PK id · FK cart_id · FK variant_id · quantity</text>
+    <text class="table-name" x="1120" y="334">wishlists · wishlist_items</text>
+    <text class="field" x="1120" y="354">FK user_id · FK product_id / variant_id</text>
+    <text class="field" x="1120" y="372">UNIQUE wishlist_id + product_id</text>
+    <rect class="badge" x="1120" y="408" width="205" height="24"/>
+    <text class="badge-text" x="1133" y="424">merge guest cart at sign-in</text>
+    <text class="note" x="1120" y="466">Persist cart rows; do not trust browser totals.</text>
+  </g>
+
+  <!-- Commerce -->
+  <g>
+    <rect class="panel" x="55" y="610" width="450" height="355"/>
+    <text class="panel-title" x="80" y="645">04 · Commerce</text>
+    <line class="rule" x1="80" y1="659" x2="480" y2="659"/>
+    <text class="table-name" x="80" y="687">orders</text>
+    <text class="field" x="80" y="707">PK id · FK user_id · order_number UNIQUE</text>
+    <text class="field" x="80" y="725">status · currency · subtotal · discount · total</text>
+    <text class="field" x="80" y="743">shipping_address_snapshot · placed_at</text>
+    <text class="table-name" x="80" y="778">order_items</text>
+    <text class="field" x="80" y="798">PK id · FK order_id · FK variant_id</text>
+    <text class="field" x="80" y="816">name / sku / unit_price snapshots · quantity</text>
+    <text class="table-name" x="80" y="850">coupons · coupon_redemptions</text>
+    <text class="field" x="80" y="870">FK coupon_id · FK user_id · FK order_id</text>
+    <text class="field" x="80" y="888">usage limits · validity · discount rules</text>
+    <text class="note" x="80" y="930">Create order and reserve stock atomically.</text>
+  </g>
+
+  <!-- Fulfillment -->
+  <g>
+    <rect class="panel" x="575" y="610" width="450" height="355"/>
+    <text class="panel-title" x="600" y="645">05 · Payment &amp; Fulfillment</text>
+    <line class="rule" x1="600" y1="659" x2="1000" y2="659"/>
+    <text class="table-name" x="600" y="687">payments · payment_events</text>
+    <text class="field" x="600" y="707">FK order_id · provider_ref UNIQUE · status</text>
+    <text class="field" x="600" y="725">amount · method · webhook idempotency key</text>
+    <text class="table-name" x="600" y="759">shipments · returns · refunds</text>
+    <text class="field" x="600" y="779">FK order_id / order_item_id / payment_id</text>
+    <text class="table-name" x="600" y="813">inventory · inventory_movements</text>
+    <text class="field" x="600" y="833">FK variant_id · on_hand · reserved · reason</text>
+    <text class="field" x="600" y="851">audit every stock adjustment</text>
+    <rect class="badge" x="600" y="880" width="203" height="24"/>
+    <text class="badge-text" x="613" y="896">never store card credentials</text>
+    <text class="note" x="600" y="936">Use payment gateway tokens and verified webhooks.</text>
+  </g>
+
+  <!-- Engagement -->
+  <g>
+    <rect class="panel" x="1095" y="610" width="450" height="355"/>
+    <text class="panel-title" x="1120" y="645">06 · Engagement</text>
+    <line class="rule" x1="1120" y1="659" x2="1520" y2="659"/>
+    <text class="table-name" x="1120" y="687">reviews</text>
+    <text class="field" x="1120" y="707">FK user_id · FK product_id · rating · body</text>
+    <text class="field" x="1120" y="725">UNIQUE user_id + order_item_id (verified)</text>
+    <text class="table-name" x="1120" y="759">contact_messages</text>
+    <text class="field" x="1120" y="779">FK user_id nullable · email · subject · status</text>
+    <text class="table-name" x="1120" y="813">newsletter_subscriptions · notifications</text>
+    <text class="field" x="1120" y="833">email UNIQUE · consent_at · unsubscribed_at</text>
+    <text class="field" x="1120" y="851">FK user_id · type · payload · read_at</text>
+    <rect class="badge" x="1120" y="880" width="174" height="24"/>
+    <text class="badge-text" x="1133" y="896">consent + audit trail</text>
+    <text class="note" x="1120" y="936">Moderate reviews; keep marketing opt-in explicit.</text>
+  </g>
+
+  <text class="note" x="56" y="1030">PK = primary key · FK = foreign key · *Use an external auth provider where possible. Detailed FK map and implementation notes: docs/database-design.md</text>
+</svg>

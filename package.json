@@ -10,23 +10,24 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@reduxjs/toolkit": "latest",
     "@vitejs/plugin-react": "latest",
-    "vite": "latest",
-    "react": "latest",
-    "react-dom": "latest",
-    "react-router-dom": "latest",
     "framer-motion": "latest",
     "lucide-react": "latest",
-    "@reduxjs/toolkit": "latest",
-    "react-redux": "latest"
+    "react": "latest",
+    "react-dom": "latest",
+    "react-redux": "latest",
+    "react-router-dom": "latest",
+    "vite": "latest"
   },
   "devDependencies": {
-    "tailwindcss": "latest",
+    "@eslint/js": "latest",
     "@tailwindcss/vite": "latest",
     "eslint": "latest",
-    "@eslint/js": "latest",
     "eslint-plugin-react-hooks": "latest",
     "eslint-plugin-react-refresh": "latest",
-    "globals": "latest"
+    "globals": "latest",
+    "prettier": "^3.9.9",
+    "tailwindcss": "latest"
   }
 }

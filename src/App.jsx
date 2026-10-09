@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Route, Routes, useLocation } from "react-router-dom";
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { useSelector } from "react-redux";
 import Navbar from "./components/Navbar.jsx";
 import Footer from "./components/Footer.jsx";
@@ -23,6 +23,8 @@ import Orders from "./pages/Orders.jsx";
 import InfoPage from "./pages/InfoPage.jsx";
 import Contact from "./pages/Contact.jsx";
 
+const AdminApp = lazy(() => import("./admin/AdminApp.jsx"));
+
 export default function App() {
     const location = useLocation();
     const darkMode = useSelector((state) => state.ui.darkMode);
@@ -30,6 +32,8 @@ export default function App() {
     useEffect(() => {
         window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
     }, [location.pathname]);
+
+    if (location.pathname.startsWith("/admin")) return <Suspense fallback={<div className="admin-route-loading">Loading admin workspace...</div>}><AdminApp /></Suspense>;
 
     return (
         <div className={darkMode ? "dark min-h-screen" : "light-mode min-h-screen"}>
