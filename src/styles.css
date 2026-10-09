@@ -1,0 +1,94 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap');
+@import "tailwindcss";
+
+:root {
+  color: #1a1a1a;
+  background: #fff8f5;
+  font-family: "Inter", system-ui, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  overflow-x: hidden;
+  background:
+    radial-gradient(circle at 12% 12%, rgba(247, 214, 224, 0.45), transparent 30%),
+    linear-gradient(135deg, #fff8f5 0%, #fff1ed 48%, #f8e5de 100%);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+img {
+  display: block;
+}
+
+.font-display {
+  font-family: "Playfair Display", "Cormorant Garamond", serif;
+}
+
+.font-elegant {
+  font-family: "Cormorant Garamond", serif;
+}
+
+.glass {
+  background: rgba(255, 248, 245, 0.68);
+  border: 1px solid rgba(212, 163, 115, 0.22);
+  box-shadow: 0 24px 80px rgba(90, 55, 43, 0.12);
+  backdrop-filter: blur(18px);
+}
+
+.luxury-shadow {
+  box-shadow: 0 22px 70px rgba(99, 51, 41, 0.14);
+}
+
+.rose-gradient {
+  background: linear-gradient(135deg, #f7d6e0 0%, #d4a373 100%);
+}
+
+.dark {
+  color: #fff8f5;
+  background:
+    radial-gradient(circle at 85% 18%, rgba(212, 163, 115, 0.18), transparent 26%),
+    linear-gradient(135deg, #111 0%, #1a1a1a 52%, #241b18 100%);
+}
+
+.dark .glass {
+  background: rgba(26, 26, 26, 0.62);
+  border-color: rgba(212, 163, 115, 0.24);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.shimmer::after {
+  animation: shimmer 1.4s infinite;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  content: "";
+  inset: 0;
+  position: absolute;
+  transform: translateX(-100%);
+}
