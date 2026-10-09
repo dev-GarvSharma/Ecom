@@ -20,7 +20,7 @@ export default function ProductCard({ product }) {
 
   return (
     <motion.article
-      className="group overflow-hidden rounded-2xl border border-[#D4A373]/20 bg-white/60 shadow-[0_20px_55px_rgba(99,51,41,0.1)] backdrop-blur transition hover:-translate-y-1 hover:shadow-[0_25px_80px_rgba(212,163,115,0.28)] dark:bg-white/5"
+      className="group overflow-hidden rounded-2xl border border-[#D4A373]/20 bg-white/60 backdrop-blur transition hover:-translate-y-1 dark:bg-white/5"
       whileHover={{ y: -6 }}
       transition={{ type: 'spring', stiffness: 240, damping: 22 }}
     >

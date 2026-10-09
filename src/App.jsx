@@ -32,7 +32,7 @@ export default function App() {
     }, [location.pathname]);
 
     return (
-        <div className={darkMode ? "dark min-h-screen" : "min-h-screen"}>
+        <div className={darkMode ? "dark min-h-screen" : "light-mode min-h-screen"}>
             <Navbar />
             <main className="pt-28">
                 <AnimatePresence mode="wait">

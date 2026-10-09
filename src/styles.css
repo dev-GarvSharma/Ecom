@@ -1,5 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap');
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 :root {
   color: #1a1a1a;
@@ -55,6 +56,27 @@ img {
 
 .rose-gradient {
   background: linear-gradient(135deg, #f7d6e0 0%, #d4a373 100%);
+}
+
+.light-mode {
+  color: #24151c;
+  background:
+    radial-gradient(circle at 12% 12%, rgba(231, 92, 143, 0.14), transparent 32%),
+    radial-gradient(circle at 88% 10%, rgba(112, 164, 226, 0.12), transparent 27%),
+    linear-gradient(135deg, #fffaff 0%, #fff7fb 52%, #f3f6ff 100%);
+}
+
+.light-mode .glass {
+  background: rgba(255, 255, 255, 0.88);
+  border-color: rgba(148, 27, 77, 0.16);
+}
+
+.light-mode .rose-gradient {
+  background: linear-gradient(135deg, #f7a6c5 0%, #ed83ad 100%);
+}
+
+.light-mode [class*="text-[#D4A373]"] {
+  color: #941b4d;
 }
 
 .dark {
