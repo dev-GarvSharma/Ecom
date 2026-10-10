@@ -12,6 +12,9 @@ import Inventory from "./pages/Inventory/Inventory.jsx";
 import Analytics from "./pages/Analytics/Analytics.jsx";
 import Settings from "./pages/Settings/Settings.jsx";
 import Marketing from "./pages/Marketing/Marketing.jsx";
+import Auth from "../pages/Auth.jsx";
+import { isAdminAccount } from "../api/auth.js";
+import LocalStorageService from "./services/localStorageService.js";
 import "./admin.css";
 
 export default function AdminApp() {
@@ -20,6 +23,11 @@ export default function AdminApp() {
   const [collapsed, setCollapsed] = useState(false);
   const [search, setSearch] = useState("");
   const [toast, setToast] = useState("");
+  const isLoginRoute = location.pathname === "/admin/login";
+  const isAuthenticatedAdmin = Boolean(
+    LocalStorageService.getAccessToken() &&
+      isAdminAccount(LocalStorageService.getUserData()),
+  );
 
   useEffect(() => {
     const previousTitle = document.title;
@@ -56,6 +64,14 @@ export default function AdminApp() {
       window.removeEventListener("admin:help", help);
     };
   }, []);
+
+  if (isLoginRoute) {
+    return <Routes><Route path="/admin/login" element={<Auth adminMode />} /><Route path="*" element={<Navigate to="/admin/login" replace />} /></Routes>;
+  }
+
+  if (!isAuthenticatedAdmin) {
+    return <Navigate to="/admin/login" replace />;
+  }
 
   return (
     <div className={`admin-shell ${collapsed ? "sidebar-collapsed" : ""}`}>

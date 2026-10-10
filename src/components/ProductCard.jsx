@@ -6,6 +6,7 @@ import { addToCart } from '../redux/slices/cartSlice.js';
 import { toggleWishlist } from '../redux/slices/wishlistSlice.js';
 import { setCartOpen, setQuickView, showToast } from '../redux/slices/uiSlice.js';
 import { currency, discountPercent } from '../utils/format.js';
+import { resolveImageUrl } from '../utils/image.js';
 import Stars from './Stars.jsx';
 
 export default function ProductCard({ product }) {
@@ -27,13 +28,13 @@ export default function ProductCard({ product }) {
       <div className="relative aspect-[4/5] overflow-hidden bg-[#F7D6E0]/25">
         <Link to={`/product/${product.id}`}>
           <img
-            src={product.images[0]}
+            src={resolveImageUrl(product.images[0])}
             alt={product.name}
             loading="lazy"
             className="h-full w-full object-cover transition duration-700 group-hover:scale-105 group-hover:opacity-0"
           />
           <img
-            src={product.images[1] || product.images[0]}
+            src={resolveImageUrl(product.images[1] || product.images[0])}
             alt=""
             loading="lazy"
             className="absolute inset-0 h-full w-full scale-105 object-cover opacity-0 transition duration-700 group-hover:scale-100 group-hover:opacity-100"

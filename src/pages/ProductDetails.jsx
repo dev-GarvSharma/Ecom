@@ -11,6 +11,7 @@ import { addToCart } from '../redux/slices/cartSlice.js';
 import { setCartOpen } from '../redux/slices/uiSlice.js';
 import { toggleWishlist } from '../redux/slices/wishlistSlice.js';
 import { currency } from '../utils/format.js';
+import { resolveImageUrl } from '../utils/image.js';
 
 export default function ProductDetails() {
   const { id } = useParams();
@@ -32,8 +33,8 @@ export default function ProductDetails() {
       <Section>
         <div className="grid gap-8 lg:grid-cols-2">
           <div className="grid gap-4 md:grid-cols-[90px_1fr]">
-            <div className="order-2 flex gap-3 md:order-1 md:flex-col">{product.images.map((src) => <button key={src} onClick={() => setImage(src)} className="overflow-hidden rounded-2xl border border-[#D4A373]/20"><img src={src} alt="" className="h-20 w-20 object-cover" /></button>)}</div>
-            <div className="order-1 overflow-hidden rounded-3xl bg-[#F7D6E0]/30 luxury-shadow md:order-2"><img src={image} alt={product.name} className="aspect-[4/5] w-full object-cover transition duration-500 hover:scale-110" /></div>
+            <div className="order-2 flex gap-3 md:order-1 md:flex-col">{product.images.map((src) => <button key={src} onClick={() => setImage(src)} className="overflow-hidden rounded-2xl border border-[#D4A373]/20"><img src={resolveImageUrl(src)} alt="" className="h-20 w-20 object-cover" /></button>)}</div>
+            <div className="order-1 overflow-hidden rounded-3xl bg-[#F7D6E0]/30 luxury-shadow md:order-2"><img src={resolveImageUrl(image)} alt={product.name} className="aspect-[4/5] w-full object-cover transition duration-500 hover:scale-110" /></div>
           </div>
           <div className="lg:pt-8">
             <p className="text-xs font-bold uppercase tracking-[0.28em] text-[#D4A373]">{product.badge}</p>

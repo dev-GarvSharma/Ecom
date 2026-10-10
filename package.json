@@ -12,10 +12,12 @@
   "dependencies": {
     "@reduxjs/toolkit": "latest",
     "@vitejs/plugin-react": "latest",
+    "axios": "^1.20.0",
     "framer-motion": "latest",
     "lucide-react": "latest",
     "react": "latest",
     "react-dom": "latest",
+    "react-hot-toast": "^2.6.1",
     "react-redux": "latest",
     "react-router-dom": "latest",
     "vite": "latest"

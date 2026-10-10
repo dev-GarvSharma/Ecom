@@ -24,6 +24,11 @@ import {
   getProductsFromCategories,
 } from "../../models/catalog.js";
 
+const getCustomerName = (order) =>
+  typeof order.customer === "string"
+    ? order.customer
+    : order.customer?.name || order.customerName || order.email || "Guest customer";
+
 const metrics = [
   {
     label: "Gross sales",
@@ -81,15 +86,20 @@ export default function Dashboard({ globalSearch = "", onNotify }) {
   if (loading) return <LoadingState label="Gathering your store overview" />;
   if (failed) return <ErrorState retry={load} />;
   const products = getProductsFromCategories(
-    result?.data?.products
-      ? [{ name: "Featured", products: result.data.products }]
+    result?.data?.data?.products
+      ? [{ name: "Featured", products: result?.data?.data?.products }]
       : [],
   );
-  const latestOrders = (result?.data?.orders || []).filter((order) =>
-    `${order.id} ${order.customer}`
-      .toLowerCase()
-      .includes(globalSearch.toLowerCase()),
-  );
+  const latestOrders = (Array.isArray(result?.data?.data?.orders)
+    ? result.data.data.orders
+    : []
+  )
+    .map((order) => ({ ...order, customer: getCustomerName(order) }))
+    .filter((order) =>
+      `${order.id} ${order.customer}`
+        .toLowerCase()
+        .includes(globalSearch.toLowerCase()),
+    );
   const exportReport = async () => {
     const response = await exportDashboardReport();
     onNotify(response.message || "Dashboard report exported.");
@@ -313,8 +323,9 @@ export default function Dashboard({ globalSearch = "", onNotify }) {
                     <div className="admin-customer-cell">
                       <div className="admin-mini-avatar">
                         {order.customer
+                          .trim()
                           .split(" ")
-                          .map((word) => word[0])
+                          .map((word) => word[0] || "")
                           .join("")}
                       </div>
                       <span>{order.customer}</span>

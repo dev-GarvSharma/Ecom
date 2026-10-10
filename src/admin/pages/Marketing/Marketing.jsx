@@ -65,7 +65,7 @@ export default function Marketing({ onNotify }) {
       .then(([overview, campaignResponse]) => {
         setResponse(overview);
         if (campaignResponse.success)
-          setCampaignList(campaignResponse.data || []);
+          setCampaignList(campaignResponse?.data?.data || []);
       })
       .catch(() => setFailed(true))
       .finally(() => setLoading(false));
@@ -75,7 +75,7 @@ export default function Marketing({ onNotify }) {
       .then(([overview, campaignResponse]) => {
         setResponse(overview);
         if (campaignResponse.success)
-          setCampaignList(campaignResponse.data || []);
+          setCampaignList(campaignResponse?.data?.data || []);
       })
       .catch(() => setFailed(true))
       .finally(() => setLoading(false));
@@ -103,7 +103,7 @@ export default function Marketing({ onNotify }) {
       const result = await getCampaignDetails(campaign.id);
       onNotify(
         result.success
-          ? `${result.data.name}: ${result.data.open} open rate.`
+          ? `${result?.data?.data?.name}: ${result?.data?.data?.open} open rate.`
           : result.message,
       );
       return;

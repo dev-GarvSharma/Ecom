@@ -41,7 +41,7 @@ export default function Orders({ globalSearch = "", onNotify }) {
       .catch(() => setFailed(true))
       .finally(() => setLoading(false));
   }, []);
-  const orders = (response?.data || []).map((order) => ({
+  const orders = (response?.data?.data || []).map((order) => ({
     ...order,
     ...orderUpdates[order.id],
   }));
@@ -57,7 +57,7 @@ export default function Orders({ globalSearch = "", onNotify }) {
     setDetail(null);
     setStatusDraft(order.status);
     const result = await getOrderDetails(order.id);
-    setDetail({ ...result.data, ...orderUpdates[order.id] });
+    setDetail({ ...result?.data?.data, ...orderUpdates[order.id] });
   };
   const saveStatus = async () => {
     const result = await updateOrderStatus(selectedOrder.id, statusDraft);

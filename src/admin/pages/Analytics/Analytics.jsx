@@ -38,9 +38,20 @@ export default function Analytics({ onNotify }) {
   }, [period]);
   if (loading) return <LoadingState label="Preparing store analytics" />;
   if (failed) return <ErrorState retry={load} />;
-  const orders = response?.data?.orders || [];
+  const orderPayload = response?.data?.data?.orders;
+  const orders = Array.isArray(orderPayload)
+    ? orderPayload
+    : Array.isArray(orderPayload?.rows)
+      ? orderPayload.rows
+      : Array.isArray(orderPayload?.records)
+        ? orderPayload.records
+        : Array.isArray(orderPayload?.items)
+          ? orderPayload.items
+          : Array.isArray(orderPayload?.data)
+            ? orderPayload.data
+            : [];
   const products = getProductsFromCategories([
-    { name: "Catalog", products: response?.data?.products || [] },
+    { name: "Catalog", products: response?.data?.data?.products || [] },
   ]);
   const paid = orders.filter((order) => order.payment === "Paid");
   const average = paid.length

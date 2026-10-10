@@ -28,7 +28,7 @@ export default function AdminTopbar({ onMenu, onSearch, search, menuOpen }) {
   useEffect(() => {
     getAllNotifications()
       .then((response) => {
-        if (response.success) setNotifications(response.data || []);
+        if (response.success) setNotifications(response?.data?.data || []);
       })
       .catch(() => setNotifications([]));
   }, []);

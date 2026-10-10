@@ -29,6 +29,7 @@ import {
   formatRupees,
   getProductsFromCategories,
 } from "../../models/catalog.js";
+import { resolveImageUrl } from "../../../utils/image.js";
 
 export default function Products({ globalSearch = "", onNotify }) {
   const [response, setResponse] = useState(null);
@@ -42,6 +43,7 @@ export default function Products({ globalSearch = "", onNotify }) {
   const [edited, setEdited] = useState({});
   const [editingProduct, setEditingProduct] = useState(null);
   const [imageDraft, setImageDraft] = useState(Array(5).fill(""));
+  const [imageFiles, setImageFiles] = useState(Array(5).fill(null));
   const [selected, setSelected] = useState([]);
   const load = () => {
     setLoading(true);
@@ -60,7 +62,7 @@ export default function Products({ globalSearch = "", onNotify }) {
   const products = useMemo(
     () => [
       ...created,
-      ...getProductsFromCategories(response?.data || []).map((item) => ({
+      ...getProductsFromCategories(response?.data?.data || []).map((item) => ({
         ...item,
         ...edited[item.id],
       })),
@@ -82,6 +84,7 @@ export default function Products({ globalSearch = "", onNotify }) {
   const openCreate = () => {
     setEditingProduct(null);
     setImageDraft(Array(5).fill(""));
+    setImageFiles(Array(5).fill(null));
     setModal(true);
   };
   const openEdit = async (item) => {
@@ -90,7 +93,7 @@ export default function Products({ globalSearch = "", onNotify }) {
       onNotify(result.message || "Could not load product details.");
       return;
     }
-    const apiProduct = result.data;
+    const apiProduct = result?.data?.data;
     const product = {
       ...item,
       name: apiProduct.ConsumableProductsModel.name,
@@ -100,10 +103,12 @@ export default function Products({ globalSearch = "", onNotify }) {
       stock: Number(apiProduct.quantity),
       images: (
         apiProduct.ConsumableProductsModel.ConsumableProductsModelImages || []
-      ).map((image) => image.url),
+      ).map((image) => resolveImageUrl(image.url)),
       image:
-        apiProduct.ConsumableProductsModel.ConsumableProductsModelImages?.[0]
-          ?.url || "",
+        resolveImageUrl(
+          apiProduct.ConsumableProductsModel.ConsumableProductsModelImages?.[0]
+            ?.url,
+        ),
     };
     setEditingProduct(product);
     setImageDraft(
@@ -113,10 +118,16 @@ export default function Products({ globalSearch = "", onNotify }) {
           product.images?.[index] || (index === 0 ? product.image : "") || "",
       ),
     );
+    setImageFiles(Array(5).fill(null));
     setModal(true);
   };
   const updateImage = (index, file) => {
     if (!file) return;
+    setImageFiles((current) =>
+      current.map((currentFile, imageIndex) =>
+        imageIndex === index ? file : currentFile,
+      ),
+    );
     const reader = new FileReader();
     reader.onload = () =>
       setImageDraft((current) =>
@@ -262,6 +273,7 @@ export default function Products({ globalSearch = "", onNotify }) {
             </thead>
             <tbody>
               {visible.map((item) => (
+                console.log(item),
                 <tr key={item.id}>
                   <td>
                     <input
@@ -344,6 +356,10 @@ export default function Products({ globalSearch = "", onNotify }) {
                 event.preventDefault();
                 const values = new FormData(event.currentTarget);
                 const stock = Number(values.get("stock"));
+                const filesToUpload = imageFiles.filter(Boolean);
+                const images = imageDraft
+                  .filter((image, index) => image && !imageFiles[index])
+                  .filter(Boolean);
                 const next = {
                   name: values.get("name"),
                   sku: values.get("sku"),
@@ -352,7 +368,7 @@ export default function Products({ globalSearch = "", onNotify }) {
                   mrp: Number(values.get("mrp")),
                   stock,
                   weight: values.get("weight") || "New item",
-                  images: imageDraft.filter(Boolean),
+                  images,
                   status:
                     stock === 0
                       ? "Out of stock"
@@ -360,10 +376,19 @@ export default function Products({ globalSearch = "", onNotify }) {
                         ? "Low stock"
                         : "In stock",
                 };
-                next.image = next.images[0] || "";
+                const productFormData = new FormData();
+                Object.entries(next).forEach(([key, value]) => {
+                  productFormData.append(
+                    key,
+                    key === "images" ? JSON.stringify(value) : String(value),
+                  );
+                });
+                filesToUpload.forEach((file) =>
+                  productFormData.append("images", file),
+                );
                 const result = editingProduct
-                  ? await updateProduct(editingProduct.id, next)
-                  : await createProduct(next);
+                  ? await updateProduct(editingProduct.id, productFormData)
+                  : await createProduct(productFormData);
                 if (!result.success) {
                   onNotify(result.message || "Could not save product.");
                   return;
@@ -388,7 +413,7 @@ export default function Products({ globalSearch = "", onNotify }) {
                   onNotify("Product updated through the mock API.");
                 } else {
                   setCreated((items) => [
-                    { ...next, id: result.data.id, mockCreated: true },
+                    { ...next, id: result?.data?.data?.id, mockCreated: true },
                     ...items,
                   ]);
                   onNotify("Product created through the mock API.");
@@ -546,11 +571,15 @@ export default function Products({ globalSearch = "", onNotify }) {
                           type="button"
                           aria-label={`Remove image ${index + 1}`}
                           onClick={() =>
-                            setImageDraft((current) =>
+                            (setImageDraft((current) =>
                               current.map((item, imageIndex) =>
                                 imageIndex === index ? "" : item,
-                              ),
-                            )
+                              )),
+                              setImageFiles((current) =>
+                                current.map((file, imageIndex) =>
+                                  imageIndex === index ? null : file,
+                                ),
+                              ))
                           }
                         >
                           <X size={12} />

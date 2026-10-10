@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux';
 import Seo from '../components/Seo.jsx';
 import Section from '../components/Section.jsx';
 import { currency } from '../utils/format.js';
+import { resolveImageUrl } from '../utils/image.js';
 
 export default function Checkout() {
   const items = useSelector((state) => state.cart.items);
@@ -30,7 +31,7 @@ export default function Checkout() {
           </form>
           <aside className="h-fit rounded-3xl bg-[#1A1A1A] p-6 text-[#FFF8F5] shadow-xl">
             <h2 className="font-display text-3xl">Order Summary</h2>
-            <div className="mt-5 space-y-4">{items.map((item) => <div key={item.id} className="flex gap-3"><img src={item.images[0]} alt={item.name} className="h-16 w-16 rounded-xl object-cover" /><div className="flex-1"><p className="font-semibold">{item.name}</p><p className="text-sm text-white/60">Qty {item.quantity}</p></div><span>{currency(item.price * item.quantity)}</span></div>)}</div>
+            <div className="mt-5 space-y-4">{items.map((item) => <div key={item.id} className="flex gap-3"><img src={resolveImageUrl(item.images[0])} alt={item.name} className="h-16 w-16 rounded-xl object-cover" /><div className="flex-1"><p className="font-semibold">{item.name}</p><p className="text-sm text-white/60">Qty {item.quantity}</p></div><span>{currency(item.price * item.quantity)}</span></div>)}</div>
             <div className="my-5 border-t border-white/10" />
             <div className="flex justify-between text-xl font-bold"><span>Total</span><span>{currency(subtotal)}</span></div>
           </aside>

@@ -6,6 +6,7 @@ import { addToCart } from '../redux/slices/cartSlice.js';
 import { toggleWishlist } from '../redux/slices/wishlistSlice.js';
 import { setCartOpen, setQuickView } from '../redux/slices/uiSlice.js';
 import { currency } from '../utils/format.js';
+import { resolveImageUrl } from '../utils/image.js';
 import Stars from './Stars.jsx';
 
 export default function QuickView() {
@@ -18,7 +19,7 @@ export default function QuickView() {
       <motion.div className="fixed inset-0 z-[94] grid place-items-center bg-[#1A1A1A]/60 p-4 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
         <motion.div className="relative grid max-h-[90vh] w-full max-w-4xl overflow-auto rounded-3xl bg-[#FFF8F5] shadow-2xl dark:bg-[#1A1A1A] md:grid-cols-2" initial={{ scale: 0.94, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.96, opacity: 0 }}>
           <button className="absolute right-4 top-4 z-10 grid h-10 w-10 place-items-center rounded-full bg-white/80" onClick={() => dispatch(setQuickView(null))} aria-label="Close quick view"><X /></button>
-          <img src={product.images[0]} alt={product.name} className="h-full min-h-[360px] w-full object-cover" />
+          <img src={resolveImageUrl(product.images[0])} alt={product.name} className="h-full min-h-[360px] w-full object-cover" />
           <div className="p-7">
             <Stars rating={product.rating} />
             <h2 className="mt-4 font-display text-4xl">{product.name}</h2>

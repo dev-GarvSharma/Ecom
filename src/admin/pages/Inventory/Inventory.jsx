@@ -46,9 +46,7 @@ export default function Inventory({ globalSearch = "", onNotify }) {
   }, []);
   if (loading) return <LoadingState label="Checking inventory levels" />;
   if (failed) return <ErrorState retry={load} />;
-  const products = getProductsFromCategories([
-    { name: "Premium Tea", products: response?.data || [] },
-  ]).map((product) => {
+  const products = getProductsFromCategories(response?.data?.data || []).map((product) => {
     const stock = stockUpdates[product.id] ?? product.stock;
     return {
       ...product,
@@ -85,7 +83,7 @@ export default function Inventory({ globalSearch = "", onNotify }) {
   const saveAdjustment = async (event) => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    const productId = Number(form.get("productId"));
+    const productId = String(form.get("productId"));
     const quantity = Number(form.get("quantity"));
     const result = await updateInventory(productId, quantity);
     if (!result.success) {

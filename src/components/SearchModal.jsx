@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { products } from '../data/products.js';
 import { setSearchOpen } from '../redux/slices/uiSlice.js';
 import { useMemo, useState } from 'react';
+import { resolveImageUrl } from '../utils/image.js';
 
 export default function SearchModal() {
   const open = useSelector((state) => state.ui.searchOpen);
@@ -27,7 +28,7 @@ export default function SearchModal() {
               <div className="mt-4 grid gap-3">
                 {(query ? suggestions : products.slice(0, 5)).map((product) => (
                   <Link key={product.id} to={`/product/${product.id}`} onClick={() => dispatch(setSearchOpen(false))} className="flex items-center gap-4 rounded-2xl bg-white/70 p-3 transition hover:bg-[#F7D6E0] dark:bg-white/10">
-                    <img src={product.images[0]} alt={product.name} className="h-16 w-16 rounded-xl object-cover" />
+                    <img src={resolveImageUrl(product.images[0])} alt={product.name} className="h-16 w-16 rounded-xl object-cover" />
                     <div><p className="font-semibold">{product.name}</p><p className="text-sm opacity-60">{product.category}</p></div>
                   </Link>
                 ))}

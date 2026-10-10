@@ -6,6 +6,7 @@ import Section from "../components/Section.jsx";
 import ProductCard from "../components/ProductCard.jsx";
 import Stars from "../components/Stars.jsx";
 import { categories, products, testimonials } from "../data/products.js";
+import { resolveImageUrl } from "../utils/image.js";
 
 export default function Home() {
     return (
@@ -152,7 +153,7 @@ function InstagramGallery() {
         <Section eyebrow="@velvetspice" title="Instagram Gallery">
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                 {images.map((product, index) => (
-                    <img key={`${product.id}-${index}`} src={product.images[index % 2]} alt="" loading="lazy" className="aspect-square rounded-2xl object-cover shadow-lg" />
+                    <img key={`${product.id}-${index}`} src={resolveImageUrl(product.images[index % 2])} alt="" loading="lazy" className="aspect-square rounded-2xl object-cover shadow-lg" />
                 ))}
             </div>
         </Section>

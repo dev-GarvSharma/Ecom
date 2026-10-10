@@ -1,11 +1,13 @@
+import { resolveImageUrl } from "../../utils/image.js";
+
 export const getProductsFromCategories = (categoryResponse = []) =>
   categoryResponse.flatMap((category) =>
     (category.products || []).map((stockProduct) => {
       const model = stockProduct.ConsumableProductsModel || {};
       const images = (model.ConsumableProductsModelImages || [])
-        .map((image) => (typeof image === "string" ? image : image.url))
+        .map((image) => resolveImageUrl(typeof image === "string" ? image : image.url))
         .filter(Boolean);
-      if (!images.length && model.image) images.push(model.image);
+      if (!images.length && model.image) images.push(resolveImageUrl(model.image));
       return {
         id: stockProduct.id,
         modelId: model.id,

@@ -44,7 +44,7 @@ export default function Customers({ globalSearch = "", onNotify }) {
   }, []);
   if (loading) return <LoadingState label="Loading customer directory" />;
   if (failed) return <ErrorState retry={load} />;
-  const customers = [...created, ...(response?.data || [])];
+  const customers = [...created, ...(response?.data?.data || [])];
   const visible = customers.filter((customer) =>
     `${customer.name} ${customer.email} ${customer.location}`
       .toLowerCase()
@@ -58,8 +58,8 @@ export default function Customers({ globalSearch = "", onNotify }) {
       getCustomerDetails(customer.id),
       getCustomerOrders(customer.id),
     ]);
-    if (customerResult.success) setSelectedCustomer(customerResult.data);
-    if (ordersResult.success) setCustomerOrders(ordersResult.data || []);
+    if (customerResult.success) setSelectedCustomer(customerResult?.data?.data);
+    if (ordersResult.success) setCustomerOrders(ordersResult?.data?.data || []);
     setOrdersLoading(false);
   };
   const submitCustomer = async (event) => {

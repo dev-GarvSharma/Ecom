@@ -42,7 +42,7 @@ export default function Categories({ globalSearch = "", onNotify }) {
   if (failed) return <ErrorState retry={load} />;
   const allCategories = [
     ...created,
-    ...(response?.data || []).map((item) => ({ ...item, ...edited[item.id] })),
+    ...(response?.data?.data || []).map((item) => ({ ...item, ...edited[item.id] })),
   ];
   const categories = allCategories.filter((item) =>
     `${item.name} ${item.slug}`
@@ -59,7 +59,7 @@ export default function Categories({ globalSearch = "", onNotify }) {
       onNotify(result.message || "Could not load category details.");
       return;
     }
-    setEditingCategory(result.data);
+    setEditingCategory(result?.data?.data);
     setModalOpen(true);
   };
   const saveCategory = async (event) => {
@@ -98,7 +98,7 @@ export default function Categories({ globalSearch = "", onNotify }) {
     } else {
       setCreated((items) => [
         {
-          id: result.data.id,
+          id: result?.data?.data?.id,
           mockCreated: true,
           parent_id: null,
           company_info_uuid: "demo",

@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { removeFromCart, saveForLater, updateQuantity } from '../redux/slices/cartSlice.js';
 import { setCartOpen } from '../redux/slices/uiSlice.js';
 import { currency } from '../utils/format.js';
+import { resolveImageUrl } from '../utils/image.js';
 
 export default function CartDrawer() {
   const dispatch = useDispatch();
@@ -30,7 +31,7 @@ export default function CartDrawer() {
               {items.length === 0 && <EmptyCart />}
               {items.map((item) => (
                 <div key={item.id} className="flex gap-4 rounded-2xl bg-white/70 p-3 shadow-sm dark:bg-white/10">
-                  <img src={item.images[0]} alt={item.name} className="h-24 w-20 rounded-xl object-cover" />
+                  <img src={resolveImageUrl(item.images[0])} alt={item.name} className="h-24 w-20 rounded-xl object-cover" />
                   <div className="min-w-0 flex-1">
                     <h3 className="truncate font-semibold">{item.name}</h3>
                     <p className="text-sm text-[#D4A373]">{currency(item.price)}</p>

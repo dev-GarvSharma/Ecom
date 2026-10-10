@@ -35,13 +35,13 @@ export default function Settings({ onNotify }) {
     setLoading(true);
     setFailed(false);
     getStoreSettings()
-      .then((result) => setForm(result.data))
+      .then((result) => setForm(result?.data?.data))
       .catch(() => setFailed(true))
       .finally(() => setLoading(false));
   };
   useEffect(() => {
     getStoreSettings()
-      .then((result) => setForm(result.data))
+      .then((result) => setForm(result?.data?.data))
       .catch(() => setFailed(true))
       .finally(() => setLoading(false));
   }, []);

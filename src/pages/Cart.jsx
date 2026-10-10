@@ -5,6 +5,7 @@ import Seo from '../components/Seo.jsx';
 import Section from '../components/Section.jsx';
 import { removeFromCart, updateQuantity } from '../redux/slices/cartSlice.js';
 import { currency } from '../utils/format.js';
+import { resolveImageUrl } from '../utils/image.js';
 
 export default function Cart() {
   const items = useSelector((state) => state.cart.items);
@@ -21,7 +22,7 @@ export default function Cart() {
             {items.length === 0 && <div className="rounded-3xl bg-white/55 p-10 text-center shadow-xl dark:bg-white/5"><p className="font-display text-4xl">Your cart is empty</p><Link to="/shop" className="mt-5 inline-block rounded-full rose-gradient px-6 py-3 font-bold text-[#1A1A1A]">Shop now</Link></div>}
             {items.map((item) => (
               <div key={item.id} className="grid gap-4 rounded-3xl bg-white/60 p-4 shadow-lg dark:bg-white/5 sm:grid-cols-[120px_1fr_auto]">
-                <img src={item.images[0]} alt={item.name} className="h-32 w-full rounded-2xl object-cover sm:w-28" />
+                <img src={resolveImageUrl(item.images[0])} alt={item.name} className="h-32 w-full rounded-2xl object-cover sm:w-28" />
                 <div><h3 className="font-display text-2xl">{item.name}</h3><p className="mt-1 text-sm opacity-60">{item.material}</p><p className="mt-3 font-bold text-[#D4A373]">{currency(item.price)}</p></div>
                 <div className="flex items-center justify-between gap-3 sm:flex-col sm:items-end">
                   <div className="flex items-center rounded-full bg-[#FFF8F5] dark:bg-white/10"><button className="p-3" onClick={() => dispatch(updateQuantity({ id: item.id, quantity: item.quantity - 1 }))}><Minus size={15} /></button><span className="px-2 font-bold">{item.quantity}</span><button className="p-3" onClick={() => dispatch(updateQuantity({ id: item.id, quantity: item.quantity + 1 }))}><Plus size={15} /></button></div>
