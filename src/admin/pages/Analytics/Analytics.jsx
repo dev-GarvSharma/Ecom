@@ -12,57 +12,66 @@ import {
   PageHeading,
   SelectField,
 } from "../../components/AdminPrimitives.jsx";
-import {
-  formatRupees,
-  getProductsFromCategories,
-} from "../../models/catalog.js";
+import { formatRupees } from "../../models/catalog.js";
 
 export default function Analytics({ onNotify }) {
   const [response, setResponse] = useState(null);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [period, setPeriod] = useState("Last 30 days");
+  const periodValue = {
+    "Last 7 days": "7d",
+    "Last 30 days": "30d",
+    "Last 90 days": "90d",
+  }[period] || "30d";
   const load = () => {
     setLoading(true);
     setFailed(false);
-    getAnalytics(period)
+    getAnalytics(periodValue)
       .then(setResponse)
       .catch(() => setFailed(true))
       .finally(() => setLoading(false));
   };
   useEffect(() => {
-    getAnalytics(period)
+    getAnalytics(periodValue)
       .then(setResponse)
       .catch(() => setFailed(true))
       .finally(() => setLoading(false));
-  }, [period]);
+  }, [periodValue]);
   if (loading) return <LoadingState label="Preparing store analytics" />;
   if (failed) return <ErrorState retry={load} />;
-  const orderPayload = response?.data?.data?.orders;
-  const orders = Array.isArray(orderPayload)
-    ? orderPayload
-    : Array.isArray(orderPayload?.rows)
-      ? orderPayload.rows
-      : Array.isArray(orderPayload?.records)
-        ? orderPayload.records
-        : Array.isArray(orderPayload?.items)
-          ? orderPayload.items
-          : Array.isArray(orderPayload?.data)
-            ? orderPayload.data
-            : [];
-  const products = getProductsFromCategories([
-    { name: "Catalog", products: response?.data?.data?.products || [] },
-  ]);
-  const paid = orders.filter((order) => order.payment === "Paid");
-  const average = paid.length
-    ? Math.round(paid.reduce((sum, item) => sum + item.total, 0) / paid.length)
-    : 0;
-  const bars = [
-    38, 52, 46, 63, 57, 76, 68, 83, 61, 72, 92, 79, 88, 69, 100, 82, 76, 91, 66,
-    84, 73, 96, 85, 72, 89, 75, 94, 81, 100, 87,
-  ];
+  const analytics = response?.data?.data || {};
+  const metrics = analytics.metrics || {};
+  const salesOverTime = Array.isArray(analytics.salesOverTime)
+    ? analytics.salesOverTime
+    : [];
+  const salesByChannel = Array.isArray(analytics.salesByChannel)
+    ? analytics.salesByChannel
+    : [];
+  const topProducts = Array.isArray(analytics.topProducts)
+    ? analytics.topProducts
+    : [];
+  const totalSales = Number(metrics.totalSales?.value ?? analytics.revenue ?? 0);
+  const maxRevenue = Math.max(...salesOverTime.map((item) => Number(item.revenue) || 0), 0);
+  const bars = salesOverTime.map((item) => ({
+    ...item,
+    height: maxRevenue ? Math.max((Number(item.revenue || 0) / maxRevenue) * 100, 2) : 0,
+  }));
+  const channelStyles = ["channel-web", "channel-social", "channel-direct"];
+  const chartLabels = bars.length
+    ? [0, 1, 2, 3, 4, 5, 6].map((position) => {
+        const index = Math.round((position * (bars.length - 1)) / 6);
+        const date = bars[index]?.date;
+        return date
+          ? new Intl.DateTimeFormat("en", { month: "short", day: "2-digit" }).format(new Date(`${date}T00:00:00`))
+          : "";
+      })
+    : [];
+  const periodDates = bars.length
+    ? `${chartLabels[0]} – ${chartLabels[chartLabels.length - 1]}`
+    : period;
   const exportReport = async () => {
-    const result = await exportAnalyticsReport(period);
+    const result = await exportAnalyticsReport(periodValue);
     onNotify(result.message || "Analytics report exported.");
   };
   return (
@@ -93,33 +102,35 @@ export default function Analytics({ onNotify }) {
         <div>
           <span>Total sales</span>
           <strong>
-            {formatRupees(paid.reduce((sum, item) => sum + item.total, 0))}
+            {formatRupees(totalSales)}
           </strong>
           <small className="change-up">
             <ArrowUpRight size={12} />
-            12.8%
+            {Number(metrics.totalSales?.changePercent ?? 0)}%
           </small>
         </div>
         <div>
           <span>Orders</span>
-          <strong>{orders.length}</strong>
+          <strong>{metrics.orders?.value ?? analytics.orders ?? 0}</strong>
           <small className="change-up">
             <ArrowUpRight size={12} />
-            8.2%
+            {Number(metrics.orders?.changePercent ?? 0)}%
           </small>
         </div>
         <div>
           <span>Average order value</span>
-          <strong>{formatRupees(average)}</strong>
+          <strong>{formatRupees(metrics.averageOrderValue?.value ?? 0)}</strong>
           <small className="change-up">
             <ArrowUpRight size={12} />
-            4.1%
+            {Number(metrics.averageOrderValue?.changePercent ?? 0)}%
           </small>
         </div>
         <div>
           <span>Items sold</span>
-          <strong>{products.reduce((sum, item) => sum + item.stock, 0)}</strong>
-          <small className="change-down">-2.4%</small>
+          <strong>{metrics.itemsSold?.value ?? 0}</strong>
+          <small className={Number(metrics.itemsSold?.changePercent ?? 0) < 0 ? "change-down" : "change-up"}>
+            {Number(metrics.itemsSold?.changePercent ?? 0)}%
+          </small>
         </div>
       </div>
       <section className="admin-panel admin-analytics-chart">
@@ -130,7 +141,7 @@ export default function Analytics({ onNotify }) {
           </div>
           <button className="admin-button admin-button-secondary">
             <CalendarDays size={15} />
-            Oct 01 – Oct 30
+            {periodDates}
           </button>
         </div>
         <div className="admin-big-chart">
@@ -150,23 +161,17 @@ export default function Analytics({ onNotify }) {
               <i />
             </div>
             <div className="admin-bar-chart">
-              {bars.map((height, index) => (
+              {bars.map((item, index) => (
                 <div
-                  key={index}
-                  style={{ height: `${height}%` }}
-                  className={index > 24 ? "bar-highlight" : ""}
-                  title={`Day ${index + 1}`}
+                  key={item.date}
+                  style={{ height: `${item.height}%` }}
+                  className={index === bars.length - 1 ? "bar-highlight" : ""}
+                  title={`${item.date}: ${formatRupees(item.revenue)}`}
                 />
               ))}
             </div>
             <div className="admin-chart-days">
-              <span>Oct 01</span>
-              <span>Oct 05</span>
-              <span>Oct 10</span>
-              <span>Oct 15</span>
-              <span>Oct 20</span>
-              <span>Oct 25</span>
-              <span>Oct 30</span>
+              {chartLabels.map((label, index) => <span key={`${label}-${index}`}>{label}</span>)}
             </div>
           </div>
         </div>
@@ -179,33 +184,19 @@ export default function Analytics({ onNotify }) {
               <p>Where your orders come from</p>
             </div>
           </div>
-          <div className="admin-channel-row">
-            <span className="channel-dot channel-web" />
-            <span>Online store</span>
-            <strong>72%</strong>
-            <div>
-              <i style={{ width: "72%" }} />
-            </div>
-            <small>₹1,32,688</small>
-          </div>
-          <div className="admin-channel-row">
-            <span className="channel-dot channel-social" />
-            <span>Social commerce</span>
-            <strong>19%</strong>
-            <div>
-              <i style={{ width: "36%" }} />
-            </div>
-            <small>₹34,985</small>
-          </div>
-          <div className="admin-channel-row">
-            <span className="channel-dot channel-direct" />
-            <span>Direct</span>
-            <strong>9%</strong>
-            <div>
-              <i style={{ width: "18%" }} />
-            </div>
-            <small>₹16,586</small>
-          </div>
+          {salesByChannel.map((channel, index) => {
+            const revenue = Number(channel.revenue) || 0;
+            const share = totalSales ? (revenue / totalSales) * 100 : 0;
+            return (
+              <div className="admin-channel-row" key={channel.channel}>
+                <span className={`channel-dot ${channelStyles[index % channelStyles.length]}`} />
+                <span>{channel.channel}</span>
+                <strong>{share.toFixed(0)}%</strong>
+                <div><i style={{ width: `${share}%` }} /></div>
+                <small>{formatRupees(revenue)}</small>
+              </div>
+            );
+          })}
         </section>
         <section className="admin-panel admin-insight-panel">
           <div className="admin-panel-heading">
@@ -214,14 +205,14 @@ export default function Analytics({ onNotify }) {
               <p>Most ordered in this period</p>
             </div>
           </div>
-          {products.slice(0, 4).map((item, index) => (
-            <div className="admin-analytics-product" key={item.id}>
+          {topProducts.slice(0, 4).map((item, index) => (
+            <div className="admin-analytics-product" key={item.productId}>
               <span className="admin-product-rank">0{index + 1}</span>
               <div>
                 <strong>{item.name}</strong>
-                <small>{item.stock} units sold</small>
+                <small>{item.quantity} units sold · {item.sku}</small>
               </div>
-              <strong>{formatRupees(item.price * item.stock)}</strong>
+              <strong>{formatRupees(item.revenue)}</strong>
             </div>
           ))}
         </section>

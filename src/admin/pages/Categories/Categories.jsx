@@ -10,6 +10,7 @@ import {
   EmptyState,
   ErrorState,
   LoadingState,
+  ListPagination,
   PageHeading,
   SearchField,
   StatusPill,
@@ -24,20 +25,22 @@ export default function Categories({ globalSearch = "", onNotify }) {
   const [edited, setEdited] = useState({});
   const [editingCategory, setEditingCategory] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [records, setRecords] = useState(20);
   const load = () => {
     setLoading(true);
     setFailed(false);
-    getAllCategories()
+    getAllCategories(page, records)
       .then(setResponse)
       .catch(() => setFailed(true))
       .finally(() => setLoading(false));
   };
   useEffect(() => {
-    getAllCategories()
+    getAllCategories(page, records)
       .then(setResponse)
       .catch(() => setFailed(true))
       .finally(() => setLoading(false));
-  }, []);
+  }, [page, records]);
   if (loading) return <LoadingState label="Loading product categories" />;
   if (failed) return <ErrorState retry={load} />;
   const allCategories = [
@@ -225,6 +228,7 @@ export default function Categories({ globalSearch = "", onNotify }) {
             </tbody>
           </table>
         </div>
+        <ListPagination meta={response?.data?.meta} page={page} records={records} onPageChange={setPage} onRecordsChange={(size) => { setPage(1); setRecords(size); }} label="categories" />
       </section>
       {modalOpen && (
         <div

@@ -144,7 +144,6 @@ export default function AdminTopbar({ onMenu, onSearch, search, menuOpen }) {
           className="admin-help-button"
           onClick={() => window.dispatchEvent(new CustomEvent("admin:help"))}
         >
-          <Command size={15} />
           <span>⌘ K</span>
         </button>
         <div className="admin-avatar admin-avatar-green">NS</div>

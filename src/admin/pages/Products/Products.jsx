@@ -19,6 +19,7 @@ import {
   EmptyState,
   ErrorState,
   LoadingState,
+  ListPagination,
   PageHeading,
   SearchField,
   SelectField,
@@ -45,20 +46,22 @@ export default function Products({ globalSearch = "", onNotify }) {
   const [imageDraft, setImageDraft] = useState(Array(5).fill(""));
   const [imageFiles, setImageFiles] = useState(Array(5).fill(null));
   const [selected, setSelected] = useState([]);
+  const [page, setPage] = useState(1);
+  const [records, setRecords] = useState(20);
   const load = () => {
     setLoading(true);
     setFailed(false);
-    getAllProducts()
+    getAllProducts(page, records)
       .then(setResponse)
       .catch(() => setFailed(true))
       .finally(() => setLoading(false));
   };
   useEffect(() => {
-    getAllProducts()
+    getAllProducts(page, records)
       .then(setResponse)
       .catch(() => setFailed(true))
       .finally(() => setLoading(false));
-  }, []);
+  }, [page, records]);
   const products = useMemo(
     () => [
       ...created,
@@ -328,17 +331,7 @@ export default function Products({ globalSearch = "", onNotify }) {
           </table>
           {!visible.length && <EmptyState title="No products match" />}
         </div>
-        <div className="admin-table-pagination">
-          <span>
-            Showing <strong>{visible.length}</strong> of{" "}
-            <strong>{products.length}</strong> products
-          </span>
-          <div>
-            <button disabled>Previous</button>
-            <button className="page-current">1</button>
-            <button disabled>Next</button>
-          </div>
-        </div>
+        <ListPagination meta={response?.data?.meta} page={page} records={records} onPageChange={setPage} onRecordsChange={(size) => { setPage(1); setRecords(size); }} label="products" />
       </section>
       {modal && (
         <AdminPortal>

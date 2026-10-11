@@ -10,6 +10,7 @@ import {
   EmptyState,
   ErrorState,
   LoadingState,
+  ListPagination,
   PageHeading,
   SearchField,
   SelectField,
@@ -30,20 +31,22 @@ export default function Inventory({ globalSearch = "", onNotify }) {
   const [stockUpdates, setStockUpdates] = useState({});
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [adjustingProduct, setAdjustingProduct] = useState("");
+  const [page, setPage] = useState(1);
+  const [records, setRecords] = useState(20);
   const load = () => {
     setLoading(true);
     setFailed(false);
-    getInventory()
+    getInventory(page, records)
       .then(setResponse)
       .catch(() => setFailed(true))
       .finally(() => setLoading(false));
   };
   useEffect(() => {
-    getInventory()
+    getInventory(page, records)
       .then(setResponse)
       .catch(() => setFailed(true))
       .finally(() => setLoading(false));
-  }, []);
+  }, [page, records]);
   if (loading) return <LoadingState label="Checking inventory levels" />;
   if (failed) return <ErrorState retry={load} />;
   const products = getProductsFromCategories(response?.data?.data || []).map((product) => {
@@ -224,6 +227,7 @@ export default function Inventory({ globalSearch = "", onNotify }) {
           </table>
           {!visible.length && <EmptyState title="No stock records match" />}
         </div>
+        <ListPagination meta={response?.data?.meta} page={page} records={records} onPageChange={setPage} onRecordsChange={(size) => { setPage(1); setRecords(size); }} label="products" />
       </section>
       {adjustOpen && (
         <AdminPortal>

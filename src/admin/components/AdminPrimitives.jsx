@@ -86,6 +86,29 @@ export function SelectField({ value, onChange, options, ariaLabel }) {
   );
 }
 
+export function ListPagination({ meta, page, records, onPageChange, onRecordsChange, label = "records" }) {
+  const total = Number(meta?.totalRecords) || 0;
+  const pages = Math.max(Number(meta?.totalPages) || 1, 1);
+  const current = Number(meta?.currentPage) || page;
+  const first = total ? (current - 1) * records + 1 : 0;
+  const last = Math.min(current * records, total);
+  return (
+    <div className="admin-table-pagination">
+      <span>
+        Showing <strong>{first}–{last}</strong> of <strong>{total}</strong> {label}
+      </span>
+      <div className="admin-pagination-controls">
+        <label>Rows <select aria-label={`${label} per page`} value={records} onChange={(event) => onRecordsChange(Number(event.target.value))}>
+          {[10, 20, 50, 100].map((size) => <option key={size} value={size}>{size}</option>)}
+        </select></label>
+        <button disabled={current <= 1} onClick={() => onPageChange(current - 1)}>Previous</button>
+        <span>Page <strong>{current}</strong> of <strong>{pages}</strong></span>
+        <button disabled={current >= pages} onClick={() => onPageChange(current + 1)}>Next</button>
+      </div>
+    </div>
+  );
+}
+
 export function EmptyState({
   title = "Nothing here yet",
   detail = "Try changing your filters or search terms.",

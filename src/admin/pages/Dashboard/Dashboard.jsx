@@ -21,7 +21,6 @@ import {
 } from "../../components/AdminPrimitives.jsx";
 import {
   formatRupees,
-  getProductsFromCategories,
 } from "../../models/catalog.js";
 
 const getCustomerName = (order) =>
@@ -29,40 +28,17 @@ const getCustomerName = (order) =>
     ? order.customer
     : order.customer?.name || order.customerName || order.email || "Guest customer";
 
-const metrics = [
-  {
-    label: "Gross sales",
-    value: "₹1,84,290",
-    change: "+12.8%",
-    icon: Wallet,
-    tone: "coral",
-    data: "0,18 12,16 24,22 36,12 48,15 60,6 72,12 84,2 96,8",
-  },
-  {
-    label: "Orders",
-    value: "248",
-    change: "+8.2%",
-    icon: ShoppingBag,
-    tone: "blue",
-    data: "0,17 12,21 24,14 36,18 48,8 60,13 72,5 84,9 96,1",
-  },
-  {
-    label: "Customers",
-    value: "1,429",
-    change: "+18.4%",
-    icon: Users,
-    tone: "green",
-    data: "0,19 12,14 24,17 36,9 48,13 60,6 72,10 84,3 96,1",
-  },
-  {
-    label: "Products sold",
-    value: "386",
-    change: "-2.4%",
-    icon: Package,
-    tone: "yellow",
-    data: "0,5 12,8 24,4 36,11 48,8 60,16 72,12 84,20 96,17",
-  },
-];
+const getChartPoints = (values = [], maxValue = 0) => {
+  if (!values.length) return "";
+  const max = maxValue || Math.max(...values.map((value) => Number(value) || 0), 1);
+  return values
+    .map((value, index) => {
+      const x = values.length === 1 ? 350 : (index / (values.length - 1)) * 700;
+      const y = 210 - ((Number(value) || 0) / max) * 180;
+      return `${x},${y}`;
+    })
+    .join(" ");
+};
 
 export default function Dashboard({ globalSearch = "", onNotify }) {
   const [result, setResult] = useState(null);
@@ -85,13 +61,26 @@ export default function Dashboard({ globalSearch = "", onNotify }) {
 
   if (loading) return <LoadingState label="Gathering your store overview" />;
   if (failed) return <ErrorState retry={load} />;
-  const products = getProductsFromCategories(
-    result?.data?.data?.products
-      ? [{ name: "Featured", products: result?.data?.data?.products }]
-      : [],
-  );
-  const latestOrders = (Array.isArray(result?.data?.data?.orders)
-    ? result.data.data.orders
+  const dashboard = result?.data?.data || {};
+  const sales = dashboard.sales || {};
+  const cards = dashboard.cards || {};
+  const fulfillment = dashboard.fulfillment || {};
+  const storeInsights = dashboard.storeInsights || {};
+  const thisWeek = Array.isArray(dashboard.salesOverview?.thisWeek)
+    ? dashboard.salesOverview.thisWeek
+    : [];
+  const lastWeek = Array.isArray(dashboard.salesOverview?.lastWeek)
+    ? dashboard.salesOverview.lastWeek
+    : [];
+  const products = Array.isArray(dashboard.topProducts)
+    ? dashboard.topProducts
+    : Array.isArray(dashboard.products)
+      ? dashboard.products
+      : [];
+  const latestOrders = (Array.isArray(dashboard.recentOrders)
+    ? dashboard.recentOrders
+    : Array.isArray(dashboard.orders)
+      ? dashboard.orders
     : []
   )
     .map((order) => ({ ...order, customer: getCustomerName(order) }))
@@ -100,6 +89,23 @@ export default function Dashboard({ globalSearch = "", onNotify }) {
         .toLowerCase()
         .includes(globalSearch.toLowerCase()),
     );
+  const metrics = [
+    { label: "Gross sales", value: formatRupees(cards.grossSales?.value ?? sales.total ?? 0), change: Number(cards.grossSales?.changePercent ?? sales.changePercent ?? 0), icon: Wallet, tone: "coral", data: "0,18 12,16 24,22 36,12 48,15 60,6 72,12 84,2 96,8" },
+    { label: "Orders", value: cards.orders?.value ?? dashboard.metrics?.orders ?? 0, change: Number(cards.orders?.changePercent ?? dashboard.metrics?.weeklyOrders?.changePercent ?? 0), icon: ShoppingBag, tone: "blue", data: "0,17 12,21 24,14 36,18 48,8 60,13 72,5 84,9 96,1" },
+    { label: "Customers", value: cards.customers?.value ?? dashboard.metrics?.customers ?? 0, change: Number(cards.customers?.changePercent ?? dashboard.metrics?.newCustomers?.changePercent ?? 0), icon: Users, tone: "green", data: "0,19 12,14 24,17 36,9 48,13 60,6 72,10 84,3 96,1" },
+    { label: "Products sold", value: cards.productsSold?.value ?? dashboard.metrics?.productsSold?.value ?? 0, change: Number(cards.productsSold?.changePercent ?? dashboard.metrics?.productsSold?.changePercent ?? 0), icon: Package, tone: "yellow", data: "0,5 12,8 24,4 36,11 48,8 60,16 72,12 84,20 96,17" },
+  ];
+  const chartMax = Math.max(
+    ...thisWeek.map((day) => Number(day.revenue) || 0),
+    ...lastWeek.map((day) => Number(day.revenue) || 0),
+    1,
+  );
+  const salesPath = getChartPoints(thisWeek.map((day) => day.revenue), chartMax);
+  const lastWeekPath = getChartPoints(lastWeek.map((day) => day.revenue), chartMax);
+  const salesAreaPath = salesPath ? `M${salesPath.replaceAll(" ", " L")} L700 230 L0 230Z` : "";
+  const restockProducts = Array.isArray(storeInsights.restocking?.products)
+    ? storeInsights.restocking.products
+    : [];
   const exportReport = async () => {
     const response = await exportDashboardReport();
     onNotify(response.message || "Dashboard report exported.");
@@ -107,7 +113,7 @@ export default function Dashboard({ globalSearch = "", onNotify }) {
   return (
     <div className="admin-page-content">
       <PageHeading
-        eyebrow="THURSDAY, OCTOBER 09, 2026"
+        eyebrow={new Intl.DateTimeFormat("en", { weekday: "long", month: "long", day: "2-digit", year: "numeric" }).format(new Date()).toUpperCase()}
         title="Good morning, Nisha"
         description="Here’s what’s happening with your store today."
         action={
@@ -147,14 +153,14 @@ export default function Dashboard({ globalSearch = "", onNotify }) {
             </div>
             <div className="admin-metric-foot">
               <span
-                className={change.startsWith("-") ? "change-down" : "change-up"}
+                className={change < 0 ? "change-down" : "change-up"}
               >
-                {change.startsWith("-") ? (
+                {change < 0 ? (
                   <ArrowDownRight size={13} />
                 ) : (
                   <ArrowUpRight size={13} />
                 )}
-                {change}
+                {change > 0 ? "+" : ""}{change}%
               </span>
               <span>vs last week</span>
             </div>
@@ -178,21 +184,19 @@ export default function Dashboard({ globalSearch = "", onNotify }) {
           <div className="admin-chart-legend">
             <span>
               <i className="legend-current" />
-              This week <strong>₹1,84,290</strong>
+              This week <strong>{formatRupees(sales.thisWeek ?? 0)}</strong>
             </span>
             <span>
               <i className="legend-previous" />
-              Last week
+              Last week <strong>{formatRupees(sales.lastWeek ?? 0)}</strong>
             </span>
             <span className="admin-chart-period">Last 7 days</span>
           </div>
           <div className="admin-chart">
             <div className="admin-chart-axis">
-              <span>₹1.0L</span>
-              <span>₹75k</span>
-              <span>₹50k</span>
-              <span>₹25k</span>
-              <span>₹0</span>
+              {[1, 0.75, 0.5, 0.25, 0].map((fraction) => (
+                <span key={fraction}>{formatRupees(chartMax * fraction)}</span>
+              ))}
             </div>
             <div className="admin-chart-plot">
               <div className="admin-chart-gridlines">
@@ -214,18 +218,18 @@ export default function Dashboard({ globalSearch = "", onNotify }) {
                   </linearGradient>
                 </defs>
                 <path
-                  d="M0 165 C45 140 55 157 100 130 S160 123 200 143 S260 102 300 116 S360 84 400 105 S460 80 500 96 S560 38 600 64 S660 40 700 50 L700 230 L0 230Z"
+                  d={salesAreaPath}
                   fill="url(#sales-fill)"
                 />
                 <path
-                  d="M0 165 C45 140 55 157 100 130 S160 123 200 143 S260 102 300 116 S360 84 400 105 S460 80 500 96 S560 38 600 64 S660 40 700 50"
+                  d={salesPath ? `M${salesPath.replaceAll(" ", " L")}` : ""}
                   fill="none"
                   stroke="#d8775d"
                   strokeWidth="3"
                   vectorEffect="non-scaling-stroke"
                 />
                 <path
-                  d="M0 185 C55 178 65 170 100 174 S165 157 200 172 S265 150 300 161 S360 139 400 155 S465 125 500 142 S565 114 600 129 S660 105 700 118"
+                  d={lastWeekPath ? `M${lastWeekPath.replaceAll(" ", " L")}` : ""}
                   fill="none"
                   stroke="#9abcb1"
                   strokeWidth="2"
@@ -234,13 +238,7 @@ export default function Dashboard({ globalSearch = "", onNotify }) {
                 />
               </svg>
               <div className="admin-chart-days">
-                <span>Mon</span>
-                <span>Tue</span>
-                <span>Wed</span>
-                <span>Thu</span>
-                <span>Fri</span>
-                <span>Sat</span>
-                <span>Sun</span>
+                {thisWeek.map((day) => <span key={day.date}>{day.day}</span>)}
               </div>
             </div>
           </div>
@@ -257,24 +255,24 @@ export default function Dashboard({ globalSearch = "", onNotify }) {
             <div className="admin-insight-item">
               <div className="insight-number">01</div>
               <div>
-                <strong>Repeat purchases are up</strong>
-                <p>Returning customers placed 24% more orders this week.</p>
+                <strong>Repeat purchases</strong>
+                <p>{storeInsights.repeatPurchases?.message || "Repeat purchase data is unavailable."}</p>
               </div>
               <ArrowUpRight size={16} />
             </div>
             <div className="admin-insight-item">
               <div className="insight-number insight-warn">02</div>
               <div>
-                <strong>3 products need restocking</strong>
-                <p>Low inventory may affect this weekend’s demand.</p>
+                <strong>{storeInsights.restocking?.count ?? 0} {storeInsights.restocking?.count === 1 ? "product needs" : "products need"} restocking</strong>
+                <p>{restockProducts.map((product) => product.name).join(", ") || "All products are above the restock threshold."}</p>
               </div>
               <ArrowRight size={16} />
             </div>
             <div className="admin-insight-item">
               <div className="insight-number insight-blue">03</div>
               <div>
-                <strong>Cart conversion improved</strong>
-                <p>Your checkout conversion is now 3.8%, up 0.6 pts.</p>
+                <strong>{storeInsights.cartConversion?.available ? "Cart conversion" : "Cart conversion unavailable"}</strong>
+                <p>{storeInsights.cartConversion?.message || "Checkout funnel events are not currently tracked."}</p>
               </div>
               <ArrowUpRight size={16} />
             </div>
@@ -371,18 +369,18 @@ export default function Dashboard({ globalSearch = "", onNotify }) {
             </button>
           </div>
           {products.slice(0, 4).map((item, index) => (
-            <div className="admin-top-product" key={item.id}>
+            <div className="admin-top-product" key={item.productId || item.id || item.sku}>
               <div className="admin-product-thumb">
                 {item.image && <img src={item.image} alt="" />}
               </div>
               <div className="admin-top-product-info">
                 <strong>{item.name}</strong>
                 <span>
-                  {item.category} · {item.weight}
+                  {item.quantity ?? item.stock ?? 0} units sold · {item.sku}
                 </span>
               </div>
               <span className="admin-product-rank">0{index + 1}</span>
-              <strong>{formatRupees(item.price)}</strong>
+              <strong>{formatRupees(item.revenue ?? item.price ?? 0)}</strong>
             </div>
           ))}
         </article>
@@ -392,29 +390,31 @@ export default function Dashboard({ globalSearch = "", onNotify }) {
               <h2>Fulfillment</h2>
               <p>Orders that need attention</p>
             </div>
-            <span className="admin-count-badge">12</span>
+            <span className="admin-count-badge">{fulfillment.unfulfilledOrders ?? 0}</span>
           </div>
           <div className="admin-fulfillment-stat">
             <div>
               <span>Unfulfilled orders</span>
-              <strong>12 orders</strong>
+              <strong>{fulfillment.unfulfilledOrders ?? 0} orders</strong>
             </div>
             <span className="fulfillment-bar">
-              <i style={{ width: "36%" }} />
+              <i style={{ width: `${(fulfillment.unfulfilledOrders || 0) + (fulfillment.readyToShip || 0) ? ((fulfillment.unfulfilledOrders || 0) / ((fulfillment.unfulfilledOrders || 0) + (fulfillment.readyToShip || 0))) * 100 : 0}%` }} />
             </span>
           </div>
           <div className="admin-fulfillment-stat">
             <div>
               <span>Ready to ship</span>
-              <strong>8 orders</strong>
+              <strong>{fulfillment.readyToShip ?? 0} orders</strong>
             </div>
             <span className="fulfillment-bar fulfillment-green">
-              <i style={{ width: "68%" }} />
+              <i style={{ width: `${(fulfillment.unfulfilledOrders || 0) + (fulfillment.readyToShip || 0) ? ((fulfillment.readyToShip || 0) / ((fulfillment.unfulfilledOrders || 0) + (fulfillment.readyToShip || 0))) * 100 : 0}%` }} />
             </span>
           </div>
           <div className="admin-fulfillment-note">
             <span className="fulfillment-dot" />
-            Average fulfillment time <strong>1.4 days</strong>
+            {fulfillment.averageFulfillmentDays
+              ? <>Average fulfillment time <strong>{fulfillment.averageFulfillmentDays} days{fulfillment.fulfillmentTimeIsEstimated ? " (estimated)" : ""}</strong></>
+              : "Average fulfillment time estimate unavailable"}
           </div>
           <button
             className="admin-button admin-button-secondary admin-full-button"
@@ -425,7 +425,7 @@ export default function Dashboard({ globalSearch = "", onNotify }) {
         </article>
       </section>
       <div className="admin-page-footnote">
-        <span>Showing live demo data</span>
+        <span>Showing live store data</span>
         <span>Updated just now</span>
       </div>
     </div>

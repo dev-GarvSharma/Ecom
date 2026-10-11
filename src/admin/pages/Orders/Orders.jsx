@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Download, Eye, PackageCheck, Save, X } from "lucide-react";
+import { Download, Eye, MapPin, PackageCheck, Phone, Save, X } from "lucide-react";
 import {
   exportOrders,
   getAllOrders,
@@ -10,6 +10,7 @@ import {
   EmptyState,
   ErrorState,
   LoadingState,
+  ListPagination,
   PageHeading,
   SearchField,
   SelectField,
@@ -27,24 +28,27 @@ export default function Orders({ globalSearch = "", onNotify }) {
   const [detail, setDetail] = useState(null);
   const [statusDraft, setStatusDraft] = useState("");
   const [orderUpdates, setOrderUpdates] = useState({});
+  const [page, setPage] = useState(1);
+  const [records, setRecords] = useState(10);
   const load = () => {
     setLoading(true);
     setFailed(false);
-    getAllOrders()
+    getAllOrders(page, records)
       .then(setResponse)
       .catch(() => setFailed(true))
       .finally(() => setLoading(false));
   };
   useEffect(() => {
-    getAllOrders()
+    getAllOrders(page, records)
       .then(setResponse)
       .catch(() => setFailed(true))
       .finally(() => setLoading(false));
-  }, []);
+  }, [page, records]);
   const orders = (response?.data?.data || []).map((order) => ({
     ...order,
     ...orderUpdates[order.id],
   }));
+  const summary = response?.data?.meta?.summary || {};
   const visible = orders.filter(
     (order) =>
       `${order.id} ${order.customer} ${order.email}`
@@ -56,11 +60,31 @@ export default function Orders({ globalSearch = "", onNotify }) {
     setSelectedOrder(order);
     setDetail(null);
     setStatusDraft(order.status);
-    const result = await getOrderDetails(order.id);
-    setDetail({ ...result?.data?.data, ...orderUpdates[order.id] });
+    const result = await getOrderDetails(order.uuid || order.id);
+    if (!result.success) {
+      setSelectedOrder(null);
+      onNotify(result.message || "Could not load order details.");
+      return;
+    }
+    const orderDetail = result?.data?.data;
+    setDetail({
+      ...order,
+      ...orderDetail,
+      customer: order.customer || orderDetail.shippingAddress?.recipient || "—",
+      email: order.email || "—",
+      payment: orderDetail.paymentStatus || order.payment,
+      method: orderDetail.paymentMethod || order.method,
+      date: orderDetail.createdAt || order.date,
+      items: Array.isArray(orderDetail.items) ? orderDetail.items : order.items,
+      ...orderUpdates[order.id],
+    });
+    setStatusDraft(orderDetail.status || order.status);
   };
   const saveStatus = async () => {
-    const result = await updateOrderStatus(selectedOrder.id, statusDraft);
+    const result = await updateOrderStatus(
+      detail?.id || selectedOrder.uuid || selectedOrder.id,
+      statusDraft,
+    );
     if (!result.success) {
       onNotify(result.message || "Could not update order status.");
       return;
@@ -72,7 +96,7 @@ export default function Orders({ globalSearch = "", onNotify }) {
     }));
     setDetail((current) => ({ ...current, ...next }));
     setSelectedOrder((current) => ({ ...current, ...next }));
-    onNotify(`${selectedOrder.id} status updated through the mock API.`);
+    onNotify(`${selectedOrder.id} status updated.`);
   };
   if (loading) return <LoadingState label="Loading orders" />;
   if (failed) return <ErrorState retry={load} />;
@@ -98,33 +122,38 @@ export default function Orders({ globalSearch = "", onNotify }) {
       <div className="admin-summary-strip">
         <div>
           <span>Total orders</span>
-          <strong>{orders.length}</strong>
+          <strong>
+            {summary.totalOrders ??
+              response?.data?.meta?.totalRecords ??
+              orders.length}
+          </strong>
         </div>
         <div>
           <span>To fulfill</span>
           <strong className="text-warn">
-            {
+            {summary.toFulfill ?? (
               orders.filter(
                 (item) =>
                   item.status === "Processing" || item.status === "Pending",
               ).length
-            }
+            )}
           </strong>
         </div>
         <div>
           <span>Shipped</span>
           <strong>
-            {orders.filter((item) => item.status === "Shipped").length}
+            {summary.shipped ??
+              orders.filter((item) => item.status === "Shipped").length}
           </strong>
         </div>
         <div>
           <span>Revenue</span>
           <strong>
-            {formatRupees(
+            {formatRupees(summary.revenue ?? (
               orders
                 .filter((item) => item.payment === "Paid")
-                .reduce((sum, item) => sum + item.total, 0),
-            )}
+                .reduce((sum, item) => sum + Number(item.total || 0), 0)
+            ))}
           </strong>
         </div>
       </div>
@@ -209,17 +238,7 @@ export default function Orders({ globalSearch = "", onNotify }) {
           </table>
           {!visible.length && <EmptyState title="No matching orders" />}
         </div>
-        <div className="admin-table-pagination">
-          <span>
-            Showing <strong>{visible.length}</strong> of{" "}
-            <strong>{orders.length}</strong> orders
-          </span>
-          <div>
-            <button disabled>Previous</button>
-            <button className="page-current">1</button>
-            <button disabled>Next</button>
-          </div>
-        </div>
+        <ListPagination meta={response?.data?.meta} page={page} records={records} onPageChange={setPage} onRecordsChange={(size) => { setPage(1); setRecords(size); }} label="orders" />
       </section>
       {selectedOrder && (
         <div
@@ -248,30 +267,94 @@ export default function Orders({ globalSearch = "", onNotify }) {
                   <PackageCheck size={19} />
                   <div>
                     <strong>{detail.status}</strong>
-                    <span>Placed {detail.date}</span>
+                    <span>Placed {formatDate(detail.createdAt || detail.date)}</span>
                   </div>
                 </div>
-                <div className="admin-detail-section">
-                  <h3>Customer</h3>
-                  <strong>{detail.customer}</strong>
-                  <span>{detail.email}</span>
-                </div>
-                <div className="admin-detail-section">
-                  <h3>Payment</h3>
-                  <span>
-                    {detail.payment} · {detail.method}
-                  </span>
-                  <strong>{formatRupees(detail.total)}</strong>
-                </div>
-                <div className="admin-detail-section">
-                  <h3>Items</h3>
-                  <span>
-                    {detail.items} item{detail.items > 1 ? "s" : ""} in this
-                    order
-                  </span>
-                </div>
-                <div className="admin-detail-section">
-                  <h3>Fulfillment status</h3>
+                <section className="admin-detail-section" aria-labelledby="order-info-heading">
+                  <h3 id="order-info-heading">Order</h3>
+                  <OrderField label="Order number" value={detail.orderNumber || detail.id} />
+                  <OrderField label="Placed" value={formatDate(detail.createdAt || detail.date)} />
+                </section>
+                <section className="admin-detail-section" aria-labelledby="shipping-heading">
+                  <h3 id="shipping-heading">Deliver to</h3>
+                  <div className="admin-order-delivery-card">
+                    <div className="admin-order-delivery-recipient">
+                      <span className="admin-order-delivery-avatar">
+                        {(detail.shippingAddress?.recipient || detail.customer || "G")
+                          .trim()
+                          .split(/\s+/)
+                          .map((part) => part[0] || "")
+                          .join("")
+                          .slice(0, 2)
+                          .toUpperCase()}
+                      </span>
+                      <div className="admin-order-delivery-contact">
+                        <strong>{detail.shippingAddress?.recipient || detail.customer || "Guest customer"}</strong>
+                        {detail.email && <span>{detail.email}</span>}
+                      </div>
+                    </div>
+                    <address className="admin-order-address">
+                      <MapPin size={15} aria-hidden="true" />
+                      <div>
+                        <span>{detail.shippingAddress?.line1 || "Address unavailable"}</span>
+                        <span>
+                          {[detail.shippingAddress?.city, detail.shippingAddress?.state]
+                            .filter(Boolean)
+                            .join(", ")}
+                        </span>
+                        <span>
+                          {[detail.shippingAddress?.postalCode, detail.shippingAddress?.country]
+                            .filter(Boolean)
+                            .join(" ")}
+                        </span>
+                      </div>
+                    </address>
+                    {detail.shippingAddress?.phone && (
+                      <a className="admin-order-delivery-phone" href={`tel:${detail.shippingAddress.phone}`}>
+                        <Phone size={13} aria-hidden="true" />
+                        {detail.shippingAddress.phone}
+                      </a>
+                    )}
+                  </div>
+                </section>
+                <section className="admin-detail-section" aria-labelledby="items-heading">
+                  <h3 id="items-heading">Items ({Array.isArray(detail.items) ? detail.items.length : detail.items || 0})</h3>
+                  {Array.isArray(detail.items) && detail.items.length > 0 ? (
+                    <ul className="admin-order-items">
+                      {detail.items.map((item) => (
+                        <li className="admin-order-item" key={item.id}>
+                          <div className="admin-order-item-info">
+                            <strong>{item.name}</strong>
+                            <span>{item.sku || "SKU unavailable"} · Qty {item.quantity}</span>
+                          </div>
+                          <div className="admin-order-item-price">
+                            <span>{formatMoney(item.unitPrice, detail.currency)} each</span>
+                            <strong>
+                              {formatMoney(Number(item.unitPrice) * Number(item.quantity), detail.currency)}
+                            </strong>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="admin-order-empty-items">Item details unavailable.</p>
+                  )}
+                </section>
+                <section className="admin-detail-section" aria-labelledby="payment-heading">
+                  <h3 id="payment-heading">Payment</h3>
+                  <OrderField label="Status" value={detail.paymentStatus || detail.payment} />
+                  <OrderField label="Method" value={detail.paymentMethod || detail.method} />
+                  {detail.couponCode && <OrderField label="Coupon" value={detail.couponCode} />}
+                </section>
+                <section className="admin-detail-section" aria-labelledby="summary-heading">
+                  <h3 id="summary-heading">Payment summary</h3>
+                  <OrderField label="Subtotal" value={formatMoney(detail.subtotal, detail.currency)} />
+                  {Number(detail.discount) > 0 && <OrderField label="Discount" value={`−${formatMoney(detail.discount, detail.currency)}`} />}
+                  <OrderField label="Shipping" value={formatMoney(detail.shipping, detail.currency)} />
+                  <OrderField label="Total" value={formatMoney(detail.total, detail.currency)} />
+                </section>
+                <section className="admin-detail-section" aria-labelledby="fulfillment-heading">
+                  <h3 id="fulfillment-heading">Fulfillment status</h3>
                   <SelectField
                     value={statusDraft}
                     onChange={setStatusDraft}
@@ -284,7 +367,7 @@ export default function Orders({ globalSearch = "", onNotify }) {
                     ]}
                     ariaLabel="Update order status"
                   />
-                </div>
+                </section>
                 <button
                   className="admin-button admin-button-dark admin-full-button"
                   onClick={saveStatus}
@@ -301,4 +384,27 @@ export default function Orders({ globalSearch = "", onNotify }) {
       )}
     </div>
   );
+}
+
+function OrderField({ label, value }) {
+  return (
+    <div className="flex items-start justify-between gap-4 py-1 text-[11px]">
+      <span className="text-slate-500">{label}</span>
+      <strong className="text-right text-slate-700">{value || "—"}</strong>
+    </div>
+  );
+}
+
+function formatDate(value) {
+  if (!value) return "—";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+}
+
+function formatMoney(value, currency = "INR") {
+  if (value === null || value === undefined || value === "") return "—";
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: currency || "INR",
+  }).format(Number(value) || 0);
 }

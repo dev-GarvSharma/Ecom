@@ -19,6 +19,7 @@ import {
 import {
   ErrorState,
   LoadingState,
+  ListPagination,
   PageHeading,
   StatusPill,
 } from "../../components/AdminPrimitives.jsx";
@@ -56,30 +57,35 @@ const campaigns = [
 export default function Marketing({ onNotify }) {
   const [response, setResponse] = useState(null);
   const [campaignList, setCampaignList] = useState(campaigns);
+  const [campaignMeta, setCampaignMeta] = useState(null);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
+  const [page, setPage] = useState(1);
+  const [records, setRecords] = useState(20);
   const load = () => {
     setLoading(true);
     setFailed(false);
-    Promise.all([getMarketingOverview(), getMarketingCampaigns()])
+    Promise.all([getMarketingOverview(), getMarketingCampaigns(page, records)])
       .then(([overview, campaignResponse]) => {
         setResponse(overview);
         if (campaignResponse.success)
           setCampaignList(campaignResponse?.data?.data || []);
+        setCampaignMeta(campaignResponse?.data?.meta || null);
       })
       .catch(() => setFailed(true))
       .finally(() => setLoading(false));
   };
   useEffect(() => {
-    Promise.all([getMarketingOverview(), getMarketingCampaigns()])
+    Promise.all([getMarketingOverview(), getMarketingCampaigns(page, records)])
       .then(([overview, campaignResponse]) => {
         setResponse(overview);
         if (campaignResponse.success)
           setCampaignList(campaignResponse?.data?.data || []);
+        setCampaignMeta(campaignResponse?.data?.meta || null);
       })
       .catch(() => setFailed(true))
       .finally(() => setLoading(false));
-  }, []);
+  }, [page, records]);
   const createDraft = async (channel = "Email campaign") => {
     const campaign = {
       id: `CMP-${Date.now()}`,
@@ -125,7 +131,7 @@ export default function Marketing({ onNotify }) {
     const result = await getMarketingSubscribers();
     onNotify(
       result.success
-        ? `${result.meta.totalRecords} demo subscribers loaded.`
+        ? `${result?.data?.meta?.totalRecords || 0} subscribers loaded.`
         : result.message,
     );
   };
@@ -245,6 +251,7 @@ export default function Marketing({ onNotify }) {
             ),
           )}
         </div>
+        <ListPagination meta={campaignMeta} page={page} records={records} onPageChange={setPage} onRecordsChange={(size) => { setPage(1); setRecords(size); }} label="campaigns" />
       </section>
       <div className="admin-marketing-shortcuts">
         <button onClick={() => createDraft("Email campaign")}>

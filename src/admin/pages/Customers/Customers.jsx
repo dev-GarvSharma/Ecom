@@ -11,12 +11,35 @@ import {
   EmptyState,
   ErrorState,
   LoadingState,
+  ListPagination,
   PageHeading,
   SearchField,
   StatusPill,
 } from "../../components/AdminPrimitives.jsx";
 import { formatRupees } from "../../models/catalog.js";
 import AdminPortal from "../../components/AdminPortal.jsx";
+
+const getCustomerOrdersCount = (order) => {
+  if (Array.isArray(order.items)) {
+    return order.items.reduce(
+      (count, item) => count + Number(item?.quantity || 0),
+      0,
+    );
+  }
+  return Number(order.items || 0);
+};
+
+const formatCustomerDate = (date) => {
+  if (!date) return "—";
+  const parsed = new Date(date);
+  return Number.isNaN(parsed.getTime())
+    ? date
+    : new Intl.DateTimeFormat("en", {
+        month: "short",
+        day: "2-digit",
+        year: "numeric",
+      }).format(parsed);
+};
 
 export default function Customers({ globalSearch = "", onNotify }) {
   const [response, setResponse] = useState(null);
@@ -25,26 +48,36 @@ export default function Customers({ globalSearch = "", onNotify }) {
   const [query, setQuery] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [customerOrders, setCustomerOrders] = useState([]);
+  const [customerOrdersMeta, setCustomerOrdersMeta] = useState(null);
+  const [ordersPage, setOrdersPage] = useState(1);
+  const [ordersRecords, setOrdersRecords] = useState(10);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [created, setCreated] = useState([]);
   const [addCustomerOpen, setAddCustomerOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [records, setRecords] = useState(20);
   const load = () => {
     setLoading(true);
     setFailed(false);
-    getAllCustomers()
+    getAllCustomers(page, records)
       .then(setResponse)
       .catch(() => setFailed(true))
       .finally(() => setLoading(false));
   };
   useEffect(() => {
-    getAllCustomers()
+    getAllCustomers(page, records)
       .then(setResponse)
       .catch(() => setFailed(true))
       .finally(() => setLoading(false));
-  }, []);
+  }, [page, records]);
   if (loading) return <LoadingState label="Loading customer directory" />;
   if (failed) return <ErrorState retry={load} />;
   const customers = [...created, ...(response?.data?.data || [])];
+  const getCustomerSegment = (customer) =>
+    customer.segment ||
+    (customer.status
+      ? customer.status.charAt(0).toUpperCase() + customer.status.slice(1)
+      : "Customer");
   const visible = customers.filter((customer) =>
     `${customer.name} ${customer.email} ${customer.location}`
       .toLowerCase()
@@ -53,13 +86,23 @@ export default function Customers({ globalSearch = "", onNotify }) {
   const openCustomer = async (customer) => {
     setSelectedCustomer(customer);
     setCustomerOrders([]);
+    setCustomerOrdersMeta(null);
+    setOrdersPage(1);
     setOrdersLoading(true);
     const [customerResult, ordersResult] = await Promise.all([
       getCustomerDetails(customer.id),
-      getCustomerOrders(customer.id),
+      getCustomerOrders(customer.id, 1, ordersRecords),
     ]);
-    if (customerResult.success) setSelectedCustomer(customerResult?.data?.data);
-    if (ordersResult.success) setCustomerOrders(ordersResult?.data?.data || []);
+    if (customerResult.success) {
+      setSelectedCustomer({
+        ...customer,
+        ...customerResult?.data?.data,
+      });
+    }
+    if (ordersResult.success) {
+      setCustomerOrders(ordersResult?.data?.data || []);
+      setCustomerOrdersMeta(ordersResult?.data?.meta || null);
+    }
     setOrdersLoading(false);
   };
   const submitCustomer = async (event) => {
@@ -176,13 +219,18 @@ export default function Customers({ globalSearch = "", onNotify }) {
                     </div>
                   </td>
                   <td>{customer.location}</td>
-                  <td>{customer.orders} orders</td>
+                  <td>{customer.totalOrders ?? customer.orders ?? 0} orders</td>
                   <td className="admin-table-total">
-                    {formatRupees(customer.spent)}
+                    {formatRupees(
+                      customer.lifetimeSpend ??
+                        customer.totalSpent ??
+                        customer.spent ??
+                        0,
+                    )}
                   </td>
-                  <td>{customer.joined}</td>
+                  <td>{customer.joined || formatCustomerDate(customer.createdAt)}</td>
                   <td>
-                    <StatusPill>{customer.segment}</StatusPill>
+                    <StatusPill>{getCustomerSegment(customer)}</StatusPill>
                   </td>
                   <td>
                     <button
@@ -199,17 +247,7 @@ export default function Customers({ globalSearch = "", onNotify }) {
           </table>
           {!visible.length && <EmptyState title="No customers found" />}
         </div>
-        <div className="admin-table-pagination">
-          <span>
-            Showing <strong>{visible.length}</strong> of{" "}
-            <strong>{customers.length}</strong> demo customers
-          </span>
-          <div>
-            <button disabled>Previous</button>
-            <button className="page-current">1</button>
-            <button disabled>Next</button>
-          </div>
-        </div>
+        <ListPagination meta={response?.data?.meta} page={page} records={records} onPageChange={setPage} onRecordsChange={(size) => { setPage(1); setRecords(size); }} label="customers" />
       </section>
       {selectedCustomer && (
         <div
@@ -241,23 +279,38 @@ export default function Customers({ globalSearch = "", onNotify }) {
               </div>
               <div>
                 <strong>{selectedCustomer.name}</strong>
-                <StatusPill>{selectedCustomer.segment}</StatusPill>
+                <StatusPill>{getCustomerSegment(selectedCustomer)}</StatusPill>
               </div>
             </div>
             <div className="admin-detail-section">
               <h3>Contact details</h3>
               <strong>{selectedCustomer.email}</strong>
+              {selectedCustomer.phone && <span>{selectedCustomer.phone}</span>}
               <span>{selectedCustomer.location}</span>
-              <span>Customer since {selectedCustomer.joined}</span>
+              <span>
+                Customer since {selectedCustomer.joined || formatCustomerDate(selectedCustomer.createdAt)}
+              </span>
             </div>
             <div className="admin-customer-stat-grid">
               <div>
                 <span>Total orders</span>
-                <strong>{selectedCustomer.orders}</strong>
+                <strong>
+                  {selectedCustomer.totalOrders ??
+                    selectedCustomer.orders ??
+                    customerOrdersMeta?.totalRecords ??
+                    customerOrders.length}
+                </strong>
               </div>
               <div>
                 <span>Lifetime spend</span>
-                <strong>{formatRupees(selectedCustomer.spent)}</strong>
+                <strong>
+                  {formatRupees(
+                    selectedCustomer.lifetimeSpend ??
+                      selectedCustomer.totalSpent ??
+                      selectedCustomer.spent ??
+                      0,
+                  )}
+                </strong>
               </div>
             </div>
             <div className="admin-customer-orders-heading">
@@ -273,12 +326,12 @@ export default function Customers({ globalSearch = "", onNotify }) {
                 <div>
                   <strong>{order.id}</strong>
                   <span>
-                    {order.date} · {order.items} item
-                    {order.items > 1 ? "s" : ""}
+                    {formatCustomerDate(order.date || order.createdAt)} · {getCustomerOrdersCount(order)} item
+                    {getCustomerOrdersCount(order) !== 1 ? "s" : ""}
                   </span>
                 </div>
                 <div>
-                  <strong>{formatRupees(order.total)}</strong>
+                  <strong>{formatRupees(order.total ?? order.totalAmount ?? 0)}</strong>
                   <StatusPill>{order.status}</StatusPill>
                 </div>
               </div>
@@ -293,6 +346,33 @@ export default function Customers({ globalSearch = "", onNotify }) {
                 Loading order history...
               </div>
             )}
+            <ListPagination
+              meta={customerOrdersMeta}
+              page={ordersPage}
+              records={ordersRecords}
+              onPageChange={async (nextPage) => {
+                setOrdersPage(nextPage);
+                setOrdersLoading(true);
+                const result = await getCustomerOrders(selectedCustomer.id, nextPage, ordersRecords);
+                if (result.success) {
+                  setCustomerOrders(result?.data?.data || []);
+                  setCustomerOrdersMeta(result?.data?.meta || null);
+                }
+                setOrdersLoading(false);
+              }}
+              onRecordsChange={async (size) => {
+                setOrdersRecords(size);
+                setOrdersPage(1);
+                setOrdersLoading(true);
+                const result = await getCustomerOrders(selectedCustomer.id, 1, size);
+                if (result.success) {
+                  setCustomerOrders(result?.data?.data || []);
+                  setCustomerOrdersMeta(result?.data?.meta || null);
+                }
+                setOrdersLoading(false);
+              }}
+              label="orders"
+            />
           </aside>
         </div>
       )}
